@@ -12,6 +12,7 @@ ALLOWED_HOSTS = config(
     "ALLOWED_HOSTS", cast=lambda hosts: [host.strip() for host in hosts.split(",")]
 )
 
+ENCRYPTION_KEY = config("ENCRYPTION_KEY")
 
 # Application definition
 
