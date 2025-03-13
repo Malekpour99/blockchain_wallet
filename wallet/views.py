@@ -1,5 +1,5 @@
 from django.db.models import Q
-from django.db import transaction
+from django.db import transaction as db_transaction
 
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
@@ -67,7 +67,7 @@ class TransactionViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Transaction.objects.all()
     serializer_class = TransactionSerializer
 
-    @transaction.atomic
+    @db_transaction.atomic
     @action(detail=False, methods=["post"])
     def deposit(self, request):
         """
@@ -75,9 +75,13 @@ class TransactionViewSet(viewsets.ReadOnlyModelViewSet):
         """
         serializer = DepositSerializer(data=request.data)
         if serializer.is_valid():
+            to_account = serializer.validated_data["to_account"]
+
+            # Lock the account to prevent race conditions
+            account = Account.objects.select_for_update().get(id=to_account.id)
             # Create a new deposit transaction
             deposit = Transaction.objects.create(
-                to_account=serializer.validated_data["to_account"],
+                to_account=account,
                 amount=serializer.validated_data["amount"],
                 transaction_type=Transaction.Type.DEPOSIT,
                 status=Transaction.Status.PENDING,
@@ -101,7 +105,7 @@ class TransactionViewSet(viewsets.ReadOnlyModelViewSet):
                 )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @transaction.atomic
+    @db_transaction.atomic
     @action(detail=False, methods=["post"])
     def withdraw(self, request):
         """
@@ -109,9 +113,13 @@ class TransactionViewSet(viewsets.ReadOnlyModelViewSet):
         """
         serializer = WithdrawSerializer(data=request.data)
         if serializer.is_valid():
+            from_account = serializer.validated_data["from_account"]
+
+            # Lock the account to prevent race conditions
+            account = Account.objects.select_for_update().get(id=from_account.id)
             # Create a new withdrawal transaction
             withdrawal = Transaction.objects.create(
-                from_account=serializer.validated_data["from_account"],
+                from_account=account,
                 amount=serializer.validated_data["amount"],
                 transaction_type=Transaction.Type.WITHDRAWAL,
                 status=Transaction.Status.PENDING,
