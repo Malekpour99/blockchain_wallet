@@ -77,7 +77,6 @@ class Transaction(BaseModel):
     class Type(models.TextChoices):
         DEPOSIT = "deposit", "Deposit"
         WITHDRAWAL = "withdrawal", "Withdrawal"
-        TRANSFER = "transfer", "Transfer"
 
     from_account = models.ForeignKey(
         Account,
@@ -112,13 +111,6 @@ class Transaction(BaseModel):
 
         if self.transaction_type == self.Type.WITHDRAWAL and not self.from_account:
             raise ValidationError("Withdrawal transactions must have a source account")
-
-        if self.transaction_type == self.Type.TRANSFER and (
-            not self.from_account or not self.to_account
-        ):
-            raise ValidationError(
-                "Transfer transactions must have both source and destination accounts"
-            )
 
     def save(self, *args, **kwargs):
         self.clean()

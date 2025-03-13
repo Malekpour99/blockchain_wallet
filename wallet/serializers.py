@@ -1,7 +1,8 @@
-from rest_framework import serializers
-from .models import Account, Transaction
-import secrets
 import string
+import secrets
+from rest_framework import serializers
+
+from .models import Account, Transaction
 
 
 class AccountSerializer(serializers.ModelSerializer):
