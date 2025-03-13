@@ -33,7 +33,7 @@ class TestAccountModel:
         """Test that a completed deposit transaction increases the account balance."""
         # Create a deposit transaction
         Transaction.objects.create(
-            to_account=account,
+            account=account,
             amount=Decimal("100.0"),
             transaction_type=Transaction.Type.DEPOSIT,
             status=Transaction.Status.COMPLETED,
@@ -46,7 +46,7 @@ class TestAccountModel:
         """Test that a completed withdrawal transaction decreases the account balance."""
         # First deposit funds
         Transaction.objects.create(
-            to_account=account,
+            account=account,
             amount=Decimal("100.0"),
             transaction_type=Transaction.Type.DEPOSIT,
             status=Transaction.Status.COMPLETED,
@@ -54,7 +54,7 @@ class TestAccountModel:
 
         # Then withdraw
         Transaction.objects.create(
-            from_account=account,
+            account=account,
             amount=Decimal("30.0"),
             transaction_type=Transaction.Type.WITHDRAWAL,
             status=Transaction.Status.COMPLETED,
@@ -67,7 +67,7 @@ class TestAccountModel:
         """Test that pending transactions do not affect the account balance."""
         # First deposit funds
         Transaction.objects.create(
-            to_account=account,
+            account=account,
             amount=Decimal("100.0"),
             transaction_type=Transaction.Type.DEPOSIT,
             status=Transaction.Status.COMPLETED,
@@ -75,7 +75,7 @@ class TestAccountModel:
 
         # Create a pending withdrawal
         Transaction.objects.create(
-            from_account=account,
+            account=account,
             amount=Decimal("20.0"),
             transaction_type=Transaction.Type.WITHDRAWAL,
             status=Transaction.Status.PENDING,
@@ -121,7 +121,7 @@ class TestTransactionModel:
         """Test the transaction completion flow with a hash."""
         # Create a pending transaction
         tx = Transaction.objects.create(
-            to_account=account,
+            account=account,
             amount=Decimal("50.0"),
             transaction_type=Transaction.Type.DEPOSIT,
             status=Transaction.Status.PENDING,
@@ -145,7 +145,7 @@ class TestTransactionModel:
         """Test that completed transactions cannot be rolled back."""
         # Create and complete a transaction
         tx = Transaction.objects.create(
-            to_account=account,
+            account=account,
             amount=Decimal("50.0"),
             transaction_type=Transaction.Type.DEPOSIT,
             status=Transaction.Status.PENDING,
@@ -163,7 +163,7 @@ class TestTransactionModel:
         """Test that pending transactions can be rolled back to failed status."""
         # Create a pending transaction
         tx = Transaction.objects.create(
-            from_account=account,
+            account=account,
             amount=Decimal("20.0"),
             transaction_type=Transaction.Type.WITHDRAWAL,
             status=Transaction.Status.PENDING,

@@ -33,8 +33,7 @@ class TransactionSerializer(serializers.ModelSerializer):
         model = Transaction
         fields = [
             "id",
-            "from_account",
-            "to_account",
+            "account",
             "amount",
             "transaction_type",
             "status",
@@ -45,7 +44,7 @@ class TransactionSerializer(serializers.ModelSerializer):
 
 
 class DepositSerializer(serializers.Serializer):
-    to_account = serializers.UUIDField()
+    account = serializers.UUIDField()
     amount = serializers.DecimalField(max_digits=24, decimal_places=8)
 
     def validate_amount(self, value):
@@ -53,7 +52,7 @@ class DepositSerializer(serializers.Serializer):
             raise serializers.ValidationError("Amount must be positive")
         return value
 
-    def validate_to_account(self, value):
+    def validate_account(self, value):
         try:
             return Account.objects.get(id=value)
         except Account.DoesNotExist:
@@ -61,7 +60,7 @@ class DepositSerializer(serializers.Serializer):
 
 
 class WithdrawSerializer(serializers.Serializer):
-    from_account = serializers.UUIDField()
+    account = serializers.UUIDField()
     amount = serializers.DecimalField(max_digits=24, decimal_places=8)
 
     def validate_amount(self, value):
@@ -71,11 +70,11 @@ class WithdrawSerializer(serializers.Serializer):
 
     def validate(self, data):
         try:
-            account = Account.objects.get(id=data["from_account"])
-            data["from_account"] = account
+            account = Account.objects.get(id=data["account"])
+            data["account"] = account
         except Account.DoesNotExist:
             raise serializers.ValidationError(
-                {"from_account": "Account does not exist"}
+                {"account": "Account does not exist"}
             )
 
         if account.balance < data["amount"]:

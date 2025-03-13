@@ -76,7 +76,7 @@ class TestAccountAPI:
 
         # First make a deposit
         client.post(
-            "/transactions/deposit/", {"to_account": account_id, "amount": "100.5"}
+            "/transactions/deposit/", {"account": account_id, "amount": "100.5"}
         )
 
         # Then get transaction history
@@ -117,7 +117,7 @@ class TestTransactionAPI:
     def test_deposit(self, client, account):
         """Test making a deposit via the API."""
         response = client.post(
-            "/transactions/deposit/", {"to_account": account, "amount": "100.5"}
+            "/transactions/deposit/", {"account": account, "amount": "100.5"}
         )
 
         # Check response
@@ -134,12 +134,12 @@ class TestTransactionAPI:
         """Test making a withdrawal via the API."""
         # First deposit some funds
         client.post(
-            "/transactions/deposit/", {"to_account": account, "amount": "100.0"}
+            "/transactions/deposit/", {"account": account, "amount": "100.0"}
         )
 
         # Then make a withdrawal
         response = client.post(
-            "/transactions/withdraw/", {"from_account": account, "amount": "50.0"}
+            "/transactions/withdraw/", {"account": account, "amount": "50.0"}
         )
 
         # Check response
@@ -156,7 +156,7 @@ class TestTransactionAPI:
         """Test that withdrawals fail properly when there are insufficient funds."""
         # Try to withdraw without funds
         response = client.post(
-            "/transactions/withdraw/", {"from_account": account, "amount": "50.0"}
+            "/transactions/withdraw/", {"account": account, "amount": "50.0"}
         )
 
         # Check that the request was rejected
@@ -168,11 +168,11 @@ class TestTransactionAPI:
         """Test retrieving the list of all transactions via the API."""
         # Create some transactions
         client.post(
-            "/transactions/deposit/", {"to_account": account, "amount": "100.0"}
+            "/transactions/deposit/", {"account": account, "amount": "100.0"}
         )
 
         client.post(
-            "/transactions/withdraw/", {"from_account": account, "amount": "30.0"}
+            "/transactions/withdraw/", {"account": account, "amount": "30.0"}
         )
 
         # Get transaction list
@@ -216,7 +216,7 @@ class TestEdgeCases:
     def test_negative_amount_deposit(self, client, account):
         """Test that deposits with negative amounts are rejected."""
         response = client.post(
-            "/transactions/deposit/", {"to_account": account, "amount": "-50.0"}
+            "/transactions/deposit/", {"account": account, "amount": "-50.0"}
         )
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -226,16 +226,16 @@ class TestEdgeCases:
         """Test handling of transactions with non-existent accounts."""
         fake_uuid = str(uuid.uuid4())
         response = client.post(
-            "/transactions/deposit/", {"to_account": fake_uuid, "amount": "50.0"}
+            "/transactions/deposit/", {"account": fake_uuid, "amount": "50.0"}
         )
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "to_account" in response.data
+        assert "account" in response.data
 
     def test_zero_amount_transaction(self, client, account):
         """Test that transactions with zero amounts are rejected."""
         response = client.post(
-            "/transactions/deposit/", {"to_account": account, "amount": "0.0"}
+            "/transactions/deposit/", {"account": account, "amount": "0.0"}
         )
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST

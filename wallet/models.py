@@ -29,11 +29,15 @@ class Account(BaseModel):
         """
         # aggregate queries for withdraw and deposits for performance
         total = Transaction.objects.filter(
-            Q(to_account=self) | Q(from_account=self),
+            account=self,
             status=Transaction.Status.COMPLETED,
         ).aggregate(
-            total_deposits=Sum("amount", filter=Q(to_account=self)),
-            total_withdrawals=Sum("amount", filter=Q(from_account=self)),
+            total_deposits=Sum(
+                "amount", filter=Q(transaction_type=Transaction.Type.DEPOSIT)
+            ),
+            total_withdrawals=Sum(
+                "amount", filter=Q(transaction_type=Transaction.Type.WITHDRAWAL)
+            ),
         )
         return (total["total_deposits"] or 0) - (total["total_withdrawals"] or 0)
 
@@ -70,18 +74,10 @@ class Transaction(BaseModel):
         DEPOSIT = "deposit", "Deposit"
         WITHDRAWAL = "withdrawal", "Withdrawal"
 
-    from_account = models.ForeignKey(
+    account = models.ForeignKey(
         Account,
         on_delete=models.PROTECT,
-        related_name="outgoing_transactions",
-        null=True,
-        blank=True,
-        db_index=True,
-    )
-    to_account = models.ForeignKey(
-        Account,
-        on_delete=models.PROTECT,
-        related_name="incoming_transactions",
+        related_name="account_transactions",
         null=True,
         blank=True,
         db_index=True,
@@ -101,12 +97,12 @@ class Transaction(BaseModel):
         if self.amount <= 0:
             raise ValidationError("Amount must be positive")
 
-        if self.transaction_type == self.Type.DEPOSIT and not self.to_account:
+        if self.transaction_type == self.Type.DEPOSIT and not self.account:
             raise ValidationError(
                 "Deposit transactions must have a destination account"
             )
 
-        if self.transaction_type == self.Type.WITHDRAWAL and not self.from_account:
+        if self.transaction_type == self.Type.WITHDRAWAL and not self.account:
             raise ValidationError("Withdrawal transactions must have a source account")
 
     def save(self, *args, **kwargs):

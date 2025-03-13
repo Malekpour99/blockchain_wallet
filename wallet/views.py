@@ -51,9 +51,9 @@ class AccountViewSet(viewsets.ModelViewSet):
         account = self.get_object()
 
         # Get all transactions related to this account
-        transactions = Transaction.objects.filter(
-            Q(from_account=account) | Q(to_account=account)
-        ).order_by("-created_at")
+        transactions = Transaction.objects.filter(account=account).order_by(
+            "-created_at"
+        )
 
         serializer = TransactionSerializer(transactions, many=True)
         return Response(serializer.data)
@@ -75,13 +75,13 @@ class TransactionViewSet(viewsets.ReadOnlyModelViewSet):
         """
         serializer = DepositSerializer(data=request.data)
         if serializer.is_valid():
-            to_account = serializer.validated_data["to_account"]
+            to_account = serializer.validated_data["account"]
 
             # Lock the account to prevent race conditions
             account = Account.objects.select_for_update().get(id=to_account.id)
             # Create a new deposit transaction
             deposit = Transaction.objects.create(
-                to_account=account,
+                account=account,
                 amount=serializer.validated_data["amount"],
                 transaction_type=Transaction.Type.DEPOSIT,
                 status=Transaction.Status.PENDING,
@@ -113,13 +113,13 @@ class TransactionViewSet(viewsets.ReadOnlyModelViewSet):
         """
         serializer = WithdrawSerializer(data=request.data)
         if serializer.is_valid():
-            from_account = serializer.validated_data["from_account"]
+            from_account = serializer.validated_data["account"]
 
             # Lock the account to prevent race conditions
             account = Account.objects.select_for_update().get(id=from_account.id)
             # Create a new withdrawal transaction
             withdrawal = Transaction.objects.create(
-                from_account=account,
+                account=account,
                 amount=serializer.validated_data["amount"],
                 transaction_type=Transaction.Type.WITHDRAWAL,
                 status=Transaction.Status.PENDING,
