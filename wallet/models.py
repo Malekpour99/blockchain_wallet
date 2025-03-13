@@ -4,7 +4,7 @@ from cryptography.fernet import Fernet
 
 from django.db import models
 from django.conf import settings
-from django.db.models import Sum
+from django.db.models import Sum, Q
 from django.core.exceptions import ValidationError
 
 from common.models import BaseModel
@@ -27,23 +27,15 @@ class Account(BaseModel):
         """
         Calculate balance from transactions, not storing it directly
         """
-        # Get completed deposits
-        deposits = (
-            Transaction.objects.filter(
-                to_account=self, status=Transaction.Status.COMPLETED
-            ).aggregate(total=Sum("amount"))["total"]
-            or 0
+        # aggregate queries for withdraw and deposits for performance
+        total = Transaction.objects.filter(
+            Q(to_account=self) | Q(from_account=self),
+            status=Transaction.Status.COMPLETED,
+        ).aggregate(
+            total_deposits=Sum("amount", filter=Q(to_account=self)),
+            total_withdrawals=Sum("amount", filter=Q(from_account=self)),
         )
-
-        # Get completed withdrawals
-        withdrawals = (
-            Transaction.objects.filter(
-                from_account=self, status=Transaction.Status.COMPLETED
-            ).aggregate(total=Sum("amount"))["total"]
-            or 0
-        )
-
-        return deposits - withdrawals
+        return (total["total_deposits"] or 0) - (total["total_withdrawals"] or 0)
 
     def encrypt_private_key(self, private_key):
         """
@@ -84,6 +76,7 @@ class Transaction(BaseModel):
         related_name="outgoing_transactions",
         null=True,
         blank=True,
+        db_index=True,
     )
     to_account = models.ForeignKey(
         Account,
@@ -91,11 +84,15 @@ class Transaction(BaseModel):
         related_name="incoming_transactions",
         null=True,
         blank=True,
+        db_index=True,
     )
     amount = models.DecimalField(max_digits=24, decimal_places=8)
     transaction_type = models.CharField(max_length=20, choices=Type.choices)
     status = models.CharField(
-        max_length=20, choices=Status.choices, default=Status.PENDING
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDING,
+        db_index=True,
     )
     hash = models.CharField(max_length=255, blank=True, null=True)
 
